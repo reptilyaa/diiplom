@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Heart, MapPin, Calendar, ArrowLeft, Edit, Send, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { LOCAL_PETS } from '../lib/localPets';
 import { useAuth } from '../contexts/AuthContext';
 import FallbackImage from '../components/FallbackImage';
 import type { Pet } from '../types';
@@ -28,10 +29,24 @@ export default function PetDetail() {
   }, [id, user]);
 
   const fetchPet = async (petId: string) => {
-    const { data, error } = await supabase.from('pets').select('*').eq('id', petId).single();
-    if (!error && data) {
-      setPet(data);
+    let remotePet: Pet | null = null;
+
+    try {
+      const { data, error } = await supabase.from('pets').select('*').eq('id', petId).single();
+      if (!error && data) {
+        remotePet = data;
+      }
+    } catch {
+      remotePet = null;
     }
+
+    if (remotePet) {
+      setPet(remotePet);
+    } else {
+      const localPet = LOCAL_PETS.find((item) => item.id === petId) ?? null;
+      setPet(localPet);
+    }
+
     setLoading(false);
   };
 

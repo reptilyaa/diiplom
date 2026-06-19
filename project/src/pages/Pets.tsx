@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, MapPin, Filter, Heart, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { LOCAL_PETS, filterLocalPets } from '../lib/localPets';
 import { useAuth } from '../contexts/AuthContext';
 import FallbackImage from '../components/FallbackImage';
 import type { Pet } from '../types';
@@ -46,37 +47,61 @@ export default function Pets() {
 
   const fetchPets = async () => {
     setLoading(true);
-    let query = supabase.from('pets').select('*');
 
-    if (breed && breed !== 'Все породы') {
-      query = query.eq('breed', breed);
-    }
-    if (city && city !== 'Все города') {
-      query = query.eq('city', city);
-    }
-    if (ageMin) {
-      query = query.gte('age', parseInt(ageMin));
-    }
-    if (ageMax) {
-      query = query.lte('age', parseInt(ageMax));
-    }
-    if (gender) {
-      query = query.eq('gender', gender);
-    }
+    const localFiltered = filterLocalPets({ search, breed, city, ageMin, ageMax, gender });
+    let remotePets: Pet[] = [];
 
-    const { data, error } = await query;
-    if (!error && data) {
-      let filtered = data;
-      if (search) {
-        filtered = filtered.filter(
-          (pet) =>
-            pet.name.toLowerCase().includes(search.toLowerCase()) ||
-            pet.breed.toLowerCase().includes(search.toLowerCase()) ||
-            pet.city.toLowerCase().includes(search.toLowerCase())
-        );
+    try {
+      let query = supabase.from('pets').select('*');
+
+      if (breed && breed !== 'Все породы') {
+        query = query.eq('breed', breed);
       }
-      setPets(filtered);
+      if (city && city !== 'Все города') {
+        query = query.eq('city', city);
+      }
+      if (ageMin) {
+        query = query.gte('age', parseInt(ageMin));
+      }
+      if (ageMax) {
+        query = query.lte('age', parseInt(ageMax));
+      }
+      if (gender) {
+        query = query.eq('gender', gender);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        remotePets = data;
+      }
+    } catch {
+      remotePets = [];
     }
+
+    let filtered = remotePets;
+    if (search) {
+      const normalizedSearch = search.toLowerCase();
+      filtered = remotePets.filter(
+        (pet) =>
+          pet.name.toLowerCase().includes(normalizedSearch) ||
+          pet.breed.toLowerCase().includes(normalizedSearch) ||
+          pet.city.toLowerCase().includes(normalizedSearch)
+      );
+    }
+
+    const mergedPets = [...filtered];
+    localFiltered.forEach((localPet) => {
+      if (!mergedPets.find((p) => p.id === localPet.id)) {
+        mergedPets.push(localPet);
+      }
+    });
+
+    if (mergedPets.length === 0) {
+      setPets(localFiltered);
+    } else {
+      setPets(mergedPets);
+    }
+
     setLoading(false);
   };
 
