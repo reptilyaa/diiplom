@@ -26,7 +26,7 @@ export default function FallbackImage({ src, fallbackSrc, alt, onError, ...props
         setHasError(true);
         setImgSrc(fallbackSrc);
       }
-    }, 3000);
+    }, 800);
 
     image.onload = () => {
       if (!active) return;
