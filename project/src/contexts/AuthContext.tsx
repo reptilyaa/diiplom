@@ -6,6 +6,7 @@ import {
   registerLocalUser,
   loginLocalUser,
   ensureLocalAdmin,
+  updateLocalUserName,
 } from '../lib/localUsers';
 
 interface LocalUser {
@@ -25,6 +26,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  updateProfileName: (name: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,6 +65,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
+  const updateProfileName = async (name: string): Promise<boolean> => {
+    if (!user) return false;
+    const result = updateLocalUserName(user.id, name);
+    if (!result.success) return false;
+    const updatedUser = { ...user, name };
+    setUser(updatedUser);
+    setSession(updatedUser);
+    setLocalSession(updatedUser);
+    return true;
+  };
+
   const signOut = async () => {
     clearLocalSession();
     setUser(null);
@@ -71,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin: isAdminUser, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin: isAdminUser, signUp, signIn, signOut, updateProfileName }}>
       {children}
     </AuthContext.Provider>
   );

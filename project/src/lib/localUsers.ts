@@ -43,10 +43,6 @@ export function registerLocalUser(email: string, password: string): { success: b
 
 export function ensureLocalAdmin(email: string, password: string): void {
   const users = getLocalUsers();
-  const adminUser = users.find((u) => u.isAdmin);
-  if (adminUser) {
-    return;
-  }
 
   const existing = users.find((u) => u.email === email);
   if (existing) {

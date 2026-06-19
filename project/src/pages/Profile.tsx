@@ -7,7 +7,7 @@ import FallbackImage from '../components/FallbackImage';
 import type { Favorite, AdoptionRequest } from '../types';
 
 export default function Profile() {
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading, updateProfileName } = useAuth();
   const [activeTab, setActiveTab] = useState<'favorites' | 'requests' | 'settings'>('favorites');
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [requests, setRequests] = useState<AdoptionRequest[]>([]);
@@ -57,8 +57,8 @@ export default function Profile() {
   const updateName = async () => {
     if (!nameInput.trim()) return;
     setSavingName(true);
-    const result = updateLocalUserName(user!.id, nameInput.trim());
-    if (result.success) {
+    const success = await updateProfileName(nameInput.trim());
+    if (success) {
       setUserName(nameInput.trim());
       setEditingName(false);
     }
@@ -296,6 +296,7 @@ export default function Profile() {
                           placeholder="Введите ваше имя"
                         />
                         <button
+                          type="button"
                           onClick={updateName}
                           disabled={savingName}
                           className="px-4 py-3 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-colors disabled:opacity-50"
@@ -303,6 +304,7 @@ export default function Profile() {
                           {savingName ? <Loader className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                         </button>
                         <button
+                          type="button"
                           onClick={() => { setEditingName(false); setNameInput(userName); }}
                           className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
                         >
