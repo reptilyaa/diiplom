@@ -36,7 +36,7 @@ export default function About() {
     <div className="space-y-16 py-8">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">О ДоброДом</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">О ПриютПоиск</h1>
           <p className="text-xl text-gray-600 leading-relaxed">
             Мы — команда единомышленников, объединённых одной целью: помочь бездомным животным найти тёплый дом и любящих хозяев.
           </p>

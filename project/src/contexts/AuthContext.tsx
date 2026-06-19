@@ -1,11 +1,16 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
-import { checkAndRegisterAdmin, isAdmin as checkIsAdmin } from '../lib/admin';
-import type { User, Session } from '@supabase/supabase-js';
+import { getLocalSession, setLocalSession, clearLocalSession, registerLocalUser, loginLocalUser } from '../lib/localUsers';
+
+interface LocalUser {
+  id: string;
+  email: string;
+  password: string;
+  created_at: string;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: LocalUser | null;
+  session: LocalUser | null;
   loading: boolean;
   isAdmin: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -16,58 +21,41 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<LocalUser | null>(null);
+  const [session, setSession] = useState<LocalUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkAndRegisterAdmin(session.user.id);
-        const adminStatus = await checkIsAdmin(session.user.id);
-        setIsAdminUser(adminStatus);
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkAndRegisterAdmin(session.user.id).then(() => {
-          checkIsAdmin(session.user.id).then((adminStatus) => {
-            setIsAdminUser(adminStatus);
-          });
-        });
-      } else {
-        setIsAdminUser(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    const localSession = getLocalSession();
+    setSession(localSession);
+    setUser(localSession ?? null);
+    setIsAdminUser(false);
+    setLoading(false);
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { error };
+  const signUp = async (email: string, password: string): Promise<{ error: Error | null }> => {
+    const result = registerLocalUser(email, password);
+    if (!result.success) {
+      return { error: new Error(result.error || 'Registration failed') };
+    }
+    return { error: null };
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+  const signIn = async (email: string, password: string): Promise<{ error: Error | null }> => {
+    const result = loginLocalUser(email, password);
+    if (!result.success) {
+      return { error: new Error(result.error || 'Invalid credentials') };
+    }
+    setSession(result.user ?? null);
+    setUser(result.user ?? null);
+    return { error: null };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    clearLocalSession();
+    setUser(null);
+    setSession(null);
   };
 
   return (

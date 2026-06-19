@@ -30,7 +30,7 @@ export default function Layout() {
             <div className="flex items-center">
               <Link to="/" className="flex items-center gap-2 text-amber-600 hover:text-amber-700 transition-colors">
                 <PawPrint className="w-8 h-8" />
-                <span className="text-xl font-bold">ДоброДом</span>
+                <span className="text-xl font-bold">ПриютПоиск</span>
               </Link>
             </div>
 
@@ -192,7 +192,7 @@ export default function Layout() {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 text-amber-400 mb-4">
                 <PawPrint className="w-8 h-8" />
-                <span className="text-xl font-bold">ДоброДом</span>
+                <span className="text-xl font-bold">ПриютПоиск</span>
               </div>
               <p className="text-gray-400 max-w-md">
                 Мы помогаем бездомным животным найти тёплый дом и любящих хозяев. Каждое животное заслуживает шанс на счастье.
@@ -219,7 +219,7 @@ export default function Layout() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
-            <p>2026 ДоброДом. Все права защищены.</p>
+            <p>2026 ПриютПоиск. Все права защищены.</p>
           </div>
         </div>
       </footer>
