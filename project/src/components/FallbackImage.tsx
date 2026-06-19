@@ -15,19 +15,22 @@ function getProxiedUrl(url: string) {
   }
 }
 
-export default function FallbackImage({ src, fallbackSrc, alt, onError, ...props }: FallbackImageProps) {
+export default function FallbackImage({ src, fallbackSrc, alt, onError, className = '', ...props }: FallbackImageProps) {
   const [imgSrc, setImgSrc] = useState<string>(fallbackSrc);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     let triedProxy = false;
-    let timeout = 0;
+    let timeoutId: ReturnType<typeof window.setTimeout>;
 
     if (!src) {
       setImgSrc(fallbackSrc);
+      setLoading(false);
       return;
     }
 
+    setLoading(true);
     setImgSrc(fallbackSrc);
     const proxyUrl = getProxiedUrl(src);
     const image = new Image();
@@ -35,67 +38,75 @@ export default function FallbackImage({ src, fallbackSrc, alt, onError, ...props
     const finishWithFallback = () => {
       if (!active) return;
       setImgSrc(fallbackSrc);
+      setLoading(false);
       if (onError) onError(new Event('error') as unknown as SyntheticEvent<HTMLImageElement>);
     };
 
-    const resetTimeout = () => {
-      clearTimeout(timeout);
-      timeout = window.setTimeout(() => {
-        if (!active) return;
-        if (!triedProxy && proxyUrl) {
-          triedProxy = true;
-          loadImage(proxyUrl);
-          return;
-        }
-        finishWithFallback();
-      }, 8000);
-    };
-
-    const loadImage = (url: string) => {
+    const loadUrl = (url: string) => {
       image.onload = () => {
         if (!active) return;
-        clearTimeout(timeout);
+        clearTimeout(timeoutId);
         setImgSrc(url);
+        setLoading(false);
       };
 
       image.onerror = () => {
         if (!active) return;
         if (!triedProxy && proxyUrl && url === src) {
           triedProxy = true;
-          resetTimeout();
-          image.src = proxyUrl;
+          loadUrl(proxyUrl);
           return;
         }
         finishWithFallback();
       };
 
       image.src = url;
-      resetTimeout();
+      clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        if (!active) return;
+        if (!triedProxy && proxyUrl && url === src) {
+          triedProxy = true;
+          loadUrl(proxyUrl);
+          return;
+        }
+        finishWithFallback();
+      }, 8000);
     };
 
-    loadImage(src);
+    loadUrl(src);
 
     return () => {
       active = false;
-      clearTimeout(timeout);
+      clearTimeout(timeoutId);
       image.onload = null;
       image.onerror = null;
     };
   }, [src, fallbackSrc, onError]);
 
   return (
-    <img
-      {...props}
-      src={imgSrc}
-      alt={alt}
-      loading={props.loading ?? 'lazy'}
-      decoding="async"
-      onError={(event) => {
-        if (imgSrc !== fallbackSrc) {
-          setImgSrc(fallbackSrc);
-        }
-        if (onError) onError(event);
-      }}
-    />
+    <div className={`relative overflow-hidden ${className}`}>
+      <div className={`absolute inset-0 flex items-center justify-center bg-gray-100 text-6xl transition-opacity duration-300 ${loading ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <span role="img" aria-label="dog paw">
+          🐾
+        </span>
+      </div>
+      <img
+        {...props}
+        src={imgSrc}
+        alt={alt}
+        loading={props.loading ?? 'lazy'}
+        decoding="async"
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loading ? 'opacity-0' : 'opacity-100'}`}
+        onLoad={() => setLoading(false)}
+        onError={(event) => {
+          if (imgSrc !== fallbackSrc) {
+            setImgSrc(fallbackSrc);
+          } else {
+            setLoading(false);
+          }
+          if (onError) onError(event);
+        }}
+      />
+    </div>
   );
 }
