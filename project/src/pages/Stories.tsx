@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Heart, Calendar, Loader } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import FallbackImage from '../components/FallbackImage';
 import type { Story } from '../types';
 
@@ -35,9 +36,32 @@ export default function Stories() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setStories(storiesData);
-    setLoading(false);
+    fetchStories();
   }, []);
+
+  const fetchStories = async () => {
+    setLoading(true);
+
+    const remoteQuery = async () => {
+      const { data, error } = await supabase.from('stories').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        return data as Story[];
+      }
+      throw new Error('remote-fetch-failed');
+    };
+
+    try {
+      const timeoutPromise = new Promise<Story[]>((_, reject) => {
+        window.setTimeout(() => reject(new Error('remote-timeout')), 4000);
+      });
+      const remoteStories = await Promise.race([remoteQuery(), timeoutPromise]);
+      setStories(remoteStories.length ? remoteStories : storiesData);
+    } catch {
+      setStories(storiesData);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
