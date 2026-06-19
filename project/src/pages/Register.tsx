@@ -68,7 +68,7 @@ export default function Register() {
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Регистрация успешна!</h3>
-              <p className="text-gray-600">Проверьте почту для подтверждения аккаунта.</p>
+              <p className="text-gray-600">Теперь вы можете войти в аккаунт.</p>
               <Link
                 to="/login"
                 className="inline-block mt-6 px-6 py-3 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-colors font-medium"
