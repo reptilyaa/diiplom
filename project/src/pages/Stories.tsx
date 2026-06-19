@@ -6,7 +6,7 @@ import type { Story } from '../types';
 
 const fallbackStories: Story[] = [
   {
-    id: 'offline-1',
+    id: 'backup-1',
     pet_id: null,
     title: 'История спасения Маши',
     content: 'Маленькая кошка Маша оказалась на улице после потери дома, но нашла любящую семью и безопасность.',
@@ -14,10 +14,18 @@ const fallbackStories: Story[] = [
     created_at: new Date().toISOString(),
   },
   {
-    id: 'offline-2',
+    id: 'backup-2',
     pet_id: null,
     title: 'Новый дом для Бублика',
     content: 'Собака Бублик долго ждала хозяев и теперь живёт в тёплой квартире с большим количеством любви.',
+    image_url: '/images/pet-fallback.svg',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'backup-3',
+    pet_id: null,
+    title: 'Путь Лизы к новой семье',
+    content: 'Лиза прошла долгий путь от приюта до уютного дома, где каждый день наполнен заботой и вниманием.',
     image_url: '/images/pet-fallback.svg',
     created_at: new Date().toISOString(),
   },
@@ -26,7 +34,6 @@ const fallbackStories: Story[] = [
 export default function Stories() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     fetchStories();
@@ -34,20 +41,15 @@ export default function Stories() {
 
   const fetchStories = async () => {
     setLoading(true);
-    setLoadError('');
 
     try {
       const { data, error } = await supabase.from('stories').select('*').order('created_at', { ascending: false });
       if (!error && data && data.length > 0) {
         setStories(data);
-      } else if (error) {
-        setLoadError('Не удалось загрузить истории. Отображаются локальные данные.');
-        setStories(fallbackStories);
-      } else if (!data || data.length === 0) {
+      } else {
         setStories(fallbackStories);
       }
-    } catch (err) {
-      setLoadError('Сеть недоступна. Отображаются локальные истории.');
+    } catch {
       setStories(fallbackStories);
     } finally {
       setLoading(false);
@@ -71,12 +73,6 @@ export default function Stories() {
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader className="w-8 h-8 animate-spin text-amber-500" />
-        </div>
-      ) : loadError ? (
-        <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
-          <Heart className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">{loadError}</h3>
-          <p className="text-gray-600">Показаны локальные истории, так как источник данных временно недоступен.</p>
         </div>
       ) : stories.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl shadow-lg">

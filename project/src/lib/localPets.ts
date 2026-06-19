@@ -49,6 +49,18 @@ export const LOCAL_PETS: Pet[] = [
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
   },
+  {
+    id: 'local-5',
+    name: 'Пеппи',
+    breed: 'Мопс',
+    age: 2,
+    gender: 'female',
+    city: 'Сочи',
+    description: 'Нежная мопсиха Пеппи любит прогулки и объятия, идеально подходит для уютной семьи.',
+    image_url: '/images/local-dog-1.svg',
+    created_at: '2026-06-01T00:00:00Z',
+    updated_at: '2026-06-01T00:00:00Z',
+  },
 ];
 
 export function filterLocalPets(options: {
