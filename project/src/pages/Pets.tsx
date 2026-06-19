@@ -29,6 +29,7 @@ export default function Pets() {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [localFallbackActive, setLocalFallbackActive] = useState(false);
   const { user } = useAuth();
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
@@ -46,12 +47,13 @@ export default function Pets() {
   }, [user]);
 
   const fetchPets = async () => {
-    setLoading(true);
-
     const localFiltered = filterLocalPets({ search, breed, city, ageMin, ageMax, gender });
-    let remotePets: Pet[] = [];
+    setPets(localFiltered);
+    setLocalFallbackActive(false);
+    setLoading(false);
 
-    try {
+    let remotePets: Pet[] = [];
+    const remoteQuery = async () => {
       let query = supabase.from('pets').select('*');
 
       if (breed && breed !== 'Все породы') {
@@ -72,37 +74,40 @@ export default function Pets() {
 
       const { data, error } = await query;
       if (!error && data) {
-        remotePets = data;
+        return data as Pet[];
       }
-    } catch {
-      remotePets = [];
-    }
+      throw new Error('remote-fetch-failed');
+    };
 
-    let filtered = remotePets;
-    if (search) {
-      const normalizedSearch = search.toLowerCase();
-      filtered = remotePets.filter(
-        (pet) =>
-          pet.name.toLowerCase().includes(normalizedSearch) ||
-          pet.breed.toLowerCase().includes(normalizedSearch) ||
-          pet.city.toLowerCase().includes(normalizedSearch)
-      );
-    }
+    try {
+      const timeoutPromise = new Promise<Pet[]>((_, reject) => {
+        window.setTimeout(() => reject(new Error('remote-timeout')), 4000);
+      });
+      remotePets = await Promise.race([remoteQuery(), timeoutPromise]);
 
-    const mergedPets = [...filtered];
-    localFiltered.forEach((localPet) => {
-      if (!mergedPets.find((p) => p.id === localPet.id)) {
-        mergedPets.push(localPet);
+      let filtered = remotePets;
+      if (search) {
+        const normalizedSearch = search.toLowerCase();
+        filtered = remotePets.filter(
+          (pet) =>
+            pet.name.toLowerCase().includes(normalizedSearch) ||
+            pet.breed.toLowerCase().includes(normalizedSearch) ||
+            pet.city.toLowerCase().includes(normalizedSearch)
+        );
       }
-    });
 
-    if (mergedPets.length === 0) {
-      setPets(localFiltered);
-    } else {
+      const mergedPets = [...filtered];
+      localFiltered.forEach((localPet) => {
+        if (!mergedPets.find((p) => p.id === localPet.id)) {
+          mergedPets.push(localPet);
+        }
+      });
+
       setPets(mergedPets);
+    } catch {
+      setPets(localFiltered);
+      setLocalFallbackActive(true);
     }
-
-    setLoading(false);
   };
 
   const fetchFavorites = async () => {
@@ -267,6 +272,12 @@ export default function Pets() {
           </div>
         )}
       </div>
+
+      {localFallbackActive && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+          Показаны резервные питомцы из локальной базы, так как подключение к серверу временно недоступно.
+        </div>
+      )}
 
       {hasActiveFilters && (
         <div className="flex flex-wrap gap-2 mb-6">
