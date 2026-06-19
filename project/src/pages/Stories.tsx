@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Heart, Calendar, Loader } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import FallbackImage from '../components/FallbackImage';
 import type { Story } from '../types';
 
-const fallbackStories: Story[] = [
+const storiesData: Story[] = [
   {
     id: 'backup-1',
     pet_id: null,
@@ -36,25 +35,9 @@ export default function Stories() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStories();
+    setStories(storiesData);
+    setLoading(false);
   }, []);
-
-  const fetchStories = async () => {
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.from('stories').select('*').order('created_at', { ascending: false });
-      if (!error && data && data.length > 0) {
-        setStories(data);
-      } else {
-        setStories(fallbackStories);
-      }
-    } catch {
-      setStories(fallbackStories);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
