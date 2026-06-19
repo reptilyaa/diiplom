@@ -2,6 +2,8 @@ interface LocalUser {
   id: string;
   email: string;
   password: string;
+  name: string;
+  isAdmin: boolean;
   created_at: string;
 }
 
@@ -28,6 +30,8 @@ export function registerLocalUser(email: string, password: string): { success: b
     id: `local_${Date.now()}`,
     email,
     password,
+    name: '',
+    isAdmin: false,
     created_at: new Date().toISOString(),
   };
 
@@ -37,9 +41,35 @@ export function registerLocalUser(email: string, password: string): { success: b
   return { success: true };
 }
 
+export function ensureLocalAdmin(email: string, password: string): void {
+  const users = getLocalUsers();
+  const adminUser = users.find((u) => u.isAdmin);
+  if (adminUser) {
+    return;
+  }
+
+  const existing = users.find((u) => u.email === email);
+  if (existing) {
+    existing.password = password;
+    existing.isAdmin = true;
+    existing.name = existing.name || 'Админ';
+  } else {
+    users.push({
+      id: `local_${Date.now()}`,
+      email,
+      password,
+      name: 'Админ',
+      isAdmin: true,
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  saveLocalUsers(users);
+}
+
 export function loginLocalUser(email: string, password: string): { success: boolean; user?: LocalUser; error?: string } {
   const users = getLocalUsers();
-  const user = users.find(u => u.email === email && u.password === password);
+  const user = users.find((u) => u.email === email && u.password === password);
 
   if (!user) {
     return { success: false, error: 'Invalid credentials' };
@@ -47,6 +77,45 @@ export function loginLocalUser(email: string, password: string): { success: bool
 
   setLocalSession(user);
   return { success: true, user };
+}
+
+export function updateLocalUserName(userId: string, name: string): { success: boolean; error?: string } {
+  const users = getLocalUsers();
+  const user = users.find((u) => u.id === userId);
+  if (!user) {
+    return { success: false, error: 'User not found' };
+  }
+
+  user.name = name;
+  saveLocalUsers(users);
+
+  const session = getLocalSession();
+  if (session?.id === userId) {
+    setLocalSession(user);
+  }
+
+  return { success: true };
+}
+
+export function updateLocalUserPassword(userId: string, currentPassword: string, newPassword: string): { success: boolean; error?: string } {
+  const users = getLocalUsers();
+  const user = users.find((u) => u.id === userId);
+  if (!user) {
+    return { success: false, error: 'User not found' };
+  }
+  if (user.password !== currentPassword) {
+    return { success: false, error: 'Invalid credentials' };
+  }
+
+  user.password = newPassword;
+  saveLocalUsers(users);
+
+  const session = getLocalSession();
+  if (session?.id === userId) {
+    setLocalSession(user);
+  }
+
+  return { success: true };
 }
 
 export function getLocalSession(): LocalUser | null {

@@ -25,17 +25,10 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       fetchUserData();
-      fetchUserProfile();
+      setUserName(user.name || '');
+      setNameInput(user.name || '');
     }
   }, [user]);
-
-  const fetchUserProfile = async () => {
-    const { data } = await supabase.from('user_profiles').select('name').eq('id', user!.id).single();
-    if (data?.name) {
-      setUserName(data.name);
-      setNameInput(data.name);
-    }
-  };
 
   const fetchUserData = async () => {
     setLoading(true);
@@ -64,10 +57,8 @@ export default function Profile() {
   const updateName = async () => {
     if (!nameInput.trim()) return;
     setSavingName(true);
-    const { error } = await supabase
-      .from('user_profiles')
-      .upsert({ id: user!.id, name: nameInput.trim(), updated_at: new Date().toISOString() });
-    if (!error) {
+    const result = updateLocalUserName(user!.id, nameInput.trim());
+    if (result.success) {
       setUserName(nameInput.trim());
       setEditingName(false);
     }
@@ -95,28 +86,17 @@ export default function Profile() {
 
     setSavingPassword(true);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user!.email!,
-      password: passwordForm.currentPassword,
-    });
+    const result = updateLocalUserPassword(user!.id, passwordForm.currentPassword, passwordForm.newPassword);
 
-    if (signInError) {
-      setPasswordError('Текущий пароль неверен');
+    if (!result.success) {
+      setPasswordError(result.error === 'Invalid credentials' ? 'Текущий пароль неверен' : 'Ошибка при смене пароля');
       setSavingPassword(false);
       return;
     }
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: passwordForm.newPassword,
-    });
-
-    if (updateError) {
-      setPasswordError('Ошибка при смене пароля');
-    } else {
-      setPasswordSuccess(true);
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setTimeout(() => setShowPasswordModal(false), 2000);
-    }
+    setPasswordSuccess(true);
+    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setTimeout(() => setShowPasswordModal(false), 2000);
 
     setSavingPassword(false);
   };

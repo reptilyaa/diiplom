@@ -1,10 +1,19 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getLocalSession, setLocalSession, clearLocalSession, registerLocalUser, loginLocalUser } from '../lib/localUsers';
+import {
+  getLocalSession,
+  setLocalSession,
+  clearLocalSession,
+  registerLocalUser,
+  loginLocalUser,
+  ensureLocalAdmin,
+} from '../lib/localUsers';
 
 interface LocalUser {
   id: string;
   email: string;
   password: string;
+  name: string;
+  isAdmin: boolean;
   created_at: string;
 }
 
@@ -27,10 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
+    ensureLocalAdmin('vm0529615@gmail.com', 'vanaveter');
     const localSession = getLocalSession();
     setSession(localSession);
     setUser(localSession ?? null);
-    setIsAdminUser(false);
+    setIsAdminUser(localSession?.isAdmin ?? false);
     setLoading(false);
   }, []);
 
@@ -49,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setSession(result.user ?? null);
     setUser(result.user ?? null);
+    setIsAdminUser(result.user?.isAdmin ?? false);
     return { error: null };
   };
 
@@ -56,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearLocalSession();
     setUser(null);
     setSession(null);
+    setIsAdminUser(false);
   };
 
   return (
